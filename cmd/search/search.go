@@ -3,7 +3,7 @@ package search
 import (
 	"fmt"
 	"os"
-	"strings"
+	"regexp"
 
 	"github.com/spf13/cobra"
 
@@ -92,18 +92,8 @@ func run(cmd *cobra.Command, args []string) error {
 	return output.New("table").Format(os.Stdout, rows)
 }
 
+var htmlTagRe = regexp.MustCompile(`<[^>]*>`)
+
 func stripHTML(s string) string {
-	result := s
-	for {
-		start := strings.Index(result, "<")
-		if start == -1 {
-			break
-		}
-		end := strings.Index(result[start:], ">")
-		if end == -1 {
-			break
-		}
-		result = result[:start] + result[start+end+1:]
-	}
-	return result
+	return htmlTagRe.ReplaceAllString(s, "")
 }

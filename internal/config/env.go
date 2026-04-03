@@ -8,7 +8,6 @@ const (
 	EnvConfigDir = "JPLAW_CONFIG_DIR"
 	EnvNoColor   = "JPLAW_NO_COLOR"
 	EnvVerbose   = "JPLAW_VERBOSE"
-	EnvNoInput   = "JPLAW_NO_INPUT"
 )
 
 func EnvOr(key, fallback string) string {

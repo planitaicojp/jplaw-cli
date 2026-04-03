@@ -12,6 +12,11 @@ type testRow struct {
 	Name string `json:"name"`
 }
 
+type testRowWithHeader struct {
+	ID   string `json:"id" header:"識別子"`
+	Name string `json:"name" header:"名前"`
+}
+
 func TestJSONFormatter(t *testing.T) {
 	var buf bytes.Buffer
 	f := New("json")
@@ -65,6 +70,25 @@ func TestTextFormatter(t *testing.T) {
 	}
 	if !strings.Contains(buf.String(), "第一条") {
 		t.Error("text output missing content")
+	}
+}
+
+func TestTableFormatterHeaderTag(t *testing.T) {
+	var buf bytes.Buffer
+	f := New("table")
+	rows := []testRowWithHeader{{ID: "1", Name: "テスト"}}
+	if err := f.Format(&buf, rows); err != nil {
+		t.Fatalf("Format() error: %v", err)
+	}
+	out := buf.String()
+	if !strings.Contains(out, "識別子") {
+		t.Error("table output missing header tag '識別子'")
+	}
+	if !strings.Contains(out, "名前") {
+		t.Error("table output missing header tag '名前'")
+	}
+	if strings.Contains(out, "ID") {
+		t.Error("table output should use header tag, not json tag")
 	}
 }
 

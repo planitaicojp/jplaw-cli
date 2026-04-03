@@ -29,8 +29,8 @@ type RevisionsResponse struct {
 }
 
 type RevisionListRow struct {
-	AmendmentDate  string `json:"amendment_date"`
-	AmendmentTitle string `json:"amendment_title"`
-	AmendmentNum   string `json:"amendment_num"`
-	AmendmentType  string `json:"amendment_type"`
+	AmendmentDate  string `json:"amendment_date" header:"改正日"`
+	AmendmentTitle string `json:"amendment_title" header:"改正法令名"`
+	AmendmentNum   string `json:"amendment_num" header:"改正法令番号"`
+	AmendmentType  string `json:"amendment_type" header:"改正種別"`
 }
