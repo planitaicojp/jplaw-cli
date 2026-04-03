@@ -53,18 +53,22 @@ func (c *Client) GetRaw(path string) ([]byte, error) {
 
 func (c *Client) do(method, path string) (*http.Response, error) {
 	url := c.BaseURL + path
-	req, err := http.NewRequest(method, url, nil)
-	if err != nil {
-		return nil, fmt.Errorf("リクエスト作成エラー: %w", err)
-	}
-	req.Header.Set("User-Agent", UserAgent)
-	req.Header.Set("Accept", "application/json")
 
-	debugLogRequest(req)
 	start := time.Now()
 
 	var resp *http.Response
 	for attempt := 0; attempt <= maxRetries; attempt++ {
+		req, err := http.NewRequest(method, url, nil)
+		if err != nil {
+			return nil, fmt.Errorf("リクエスト作成エラー: %w", err)
+		}
+		req.Header.Set("User-Agent", UserAgent)
+		req.Header.Set("Accept", "application/json")
+
+		if attempt == 0 {
+			debugLogRequest(req)
+		}
+
 		resp, err = c.HTTP.Do(req)
 		if err != nil {
 			if attempt == maxRetries {
@@ -90,7 +94,7 @@ func (c *Client) do(method, path string) (*http.Response, error) {
 	debugLogResponse(resp, elapsed)
 
 	if resp.StatusCode >= 400 {
-		return resp, parseAPIError(resp)
+		return nil, parseAPIError(resp)
 	}
 	return resp, nil
 }

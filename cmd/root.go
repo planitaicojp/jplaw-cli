@@ -12,6 +12,7 @@ import (
 	"github.com/planitaicojp/jplaw-cli/cmd/list"
 	"github.com/planitaicojp/jplaw-cli/cmd/search"
 	"github.com/planitaicojp/jplaw-cli/internal/api"
+	"github.com/planitaicojp/jplaw-cli/internal/config"
 	cerrors "github.com/planitaicojp/jplaw-cli/internal/errors"
 )
 
@@ -32,7 +33,7 @@ var rootCmd = &cobra.Command{
 	SilenceErrors: true,
 	PersistentPreRun: func(cmd *cobra.Command, args []string) {
 		api.UserAgent = "jplaw-cli/" + version
-		if flagVerbose {
+		if flagVerbose || config.EnvOr(config.EnvVerbose, "") != "" {
 			api.SetDebugLevel(api.DebugVerbose)
 		}
 	},
