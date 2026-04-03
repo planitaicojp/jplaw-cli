@@ -1,0 +1,53 @@
+version: 2
+
+builds:
+  - binary: jplaw
+    ldflags:
+      - -s -w -X github.com/planitaicojp/jplaw-cli/cmd.version={{.Version}}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: "checksums.txt"
+
+brews:
+  - repository:
+      owner: planitaicojp
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    name: jplaw
+    homepage: "https://github.com/planitaicojp/jplaw-cli"
+    description: "e-Gov法令API CLI - 日本の法令を検索・取得するコマンドラインツール"
+    license: "MIT"
+    install: |
+      bin.install "jplaw"
+
+scoops:
+  - repository:
+      owner: planitaicojp
+      name: bucket
+      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
+    name: jplaw
+    homepage: "https://github.com/planitaicojp/jplaw-cli"
+    description: "e-Gov法令API CLI - 日本の法令を検索・取得するコマンドラインツール"
+    license: "MIT"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
