@@ -39,7 +39,7 @@ func (lt LawType) Label() string {
 	return string(lt)
 }
 
-func LawTypeLabelFromAPI(label string) LawType {
+func LawTypeFromLabel(label string) LawType {
 	if lt, ok := labelToLawType[label]; ok {
 		return lt
 	}

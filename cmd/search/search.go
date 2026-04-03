@@ -40,6 +40,10 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	if err := cmdutil.ValidateDate(flagAsof, "asof"); err != nil {
+		return err
+	}
+
 	client, err := cmdutil.NewClient()
 	if err != nil {
 		return err
@@ -53,23 +57,8 @@ func run(cmd *cobra.Command, args []string) error {
 		CategoryCd: flagCategory,
 	}
 
-	for _, lt := range flagLawType {
-		apiType := model.LawTypeLabelFromAPI(lt)
-		if apiType == "" {
-			params.LawType = append(params.LawType, model.LawType(lt))
-		} else {
-			params.LawType = append(params.LawType, apiType)
-		}
-	}
-
-	if flagEra != "" {
-		era := model.EraFromLabel(flagEra)
-		if era == "" {
-			params.LawNumEra = model.Era(flagEra)
-		} else {
-			params.LawNumEra = era
-		}
-	}
+	params.LawType = cmdutil.ParseLawTypes(flagLawType)
+	params.LawNumEra = cmdutil.ParseEra(flagEra)
 
 	resp, err := client.SearchKeyword(params)
 	if err != nil {

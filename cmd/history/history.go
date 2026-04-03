@@ -31,6 +31,13 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	if err := cmdutil.ValidateDate(flagAmendmentFrom, "amendment-from"); err != nil {
+		return err
+	}
+	if err := cmdutil.ValidateDate(flagAmendmentTo, "amendment-to"); err != nil {
+		return err
+	}
+
 	client, err := cmdutil.NewClient()
 	if err != nil {
 		return err

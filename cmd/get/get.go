@@ -36,6 +36,10 @@ func init() {
 }
 
 func run(cmd *cobra.Command, args []string) error {
+	if err := cmdutil.ValidateDate(flagAsof, "asof"); err != nil {
+		return err
+	}
+
 	client, err := cmdutil.NewClient()
 	if err != nil {
 		return err
@@ -63,12 +67,12 @@ func run(cmd *cobra.Command, args []string) error {
 	case "json":
 		return output.New("json").Format(os.Stdout, resp)
 	case "xml":
-		params.LawFullTextFormat = "xml"
-		xmlResp, err := client.GetLawData(idOrNum, params)
+		data, err := client.GetLawFile("xml", idOrNum, flagAsof)
 		if err != nil {
 			return err
 		}
-		return output.New("json").Format(os.Stdout, xmlResp)
+		_, err = os.Stdout.Write(data)
+		return err
 	default:
 		if _, err := fmt.Fprintf(os.Stdout, "%s\n（%s）\n\n", resp.RevisionInfo.LawTitle, resp.LawInfo.LawNum); err != nil {
 			return err

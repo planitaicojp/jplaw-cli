@@ -74,13 +74,13 @@ func (c *Client) do(method, path string) (*http.Response, error) {
 			if attempt == maxRetries {
 				return nil, &cerrors.NetworkError{Err: err}
 			}
-			time.Sleep(time.Duration(attempt+1) * time.Second)
+			time.Sleep(time.Duration(1<<uint(attempt)) * time.Second)
 			continue
 		}
 		if resp.StatusCode == 429 || resp.StatusCode >= 500 {
 			if attempt < maxRetries {
 				resp.Body.Close()
-				time.Sleep(time.Duration(attempt+1) * time.Second)
+				time.Sleep(time.Duration(1<<uint(attempt)) * time.Second)
 				continue
 			}
 		}

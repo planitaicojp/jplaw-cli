@@ -62,13 +62,13 @@ func TestLawTypeJSON(t *testing.T) {
 	}
 }
 
-func TestLawTypeLabelFromAPI(t *testing.T) {
-	lt := LawTypeLabelFromAPI("法律")
+func TestLawTypeFromLabel(t *testing.T) {
+	lt := LawTypeFromLabel("法律")
 	if lt != LawTypeAct {
-		t.Errorf("LawTypeLabelFromAPI('法律') = %q, want %q", lt, LawTypeAct)
+		t.Errorf("LawTypeFromLabel('法律') = %q, want %q", lt, LawTypeAct)
 	}
-	lt = LawTypeLabelFromAPI("unknown")
+	lt = LawTypeFromLabel("unknown")
 	if lt != "" {
-		t.Errorf("LawTypeLabelFromAPI('unknown') = %q, want empty", lt)
+		t.Errorf("LawTypeFromLabel('unknown') = %q, want empty", lt)
 	}
 }
