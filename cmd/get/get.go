@@ -70,8 +70,9 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 		return output.New("json").Format(os.Stdout, xmlResp)
 	default:
-		fmt.Fprintf(os.Stdout, "%s\n", resp.RevisionInfo.LawTitle)
-		fmt.Fprintf(os.Stdout, "（%s）\n\n", resp.LawInfo.LawNum)
+		if _, err := fmt.Fprintf(os.Stdout, "%s\n（%s）\n\n", resp.RevisionInfo.LawTitle, resp.LawInfo.LawNum); err != nil {
+			return err
+		}
 
 		text, err := lawtext.Convert(resp.LawFullText)
 		if err != nil {
