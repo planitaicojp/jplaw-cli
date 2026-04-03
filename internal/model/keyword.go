@@ -19,7 +19,7 @@ type KeywordResponse struct {
 }
 
 type KeywordListRow struct {
-	LawNum   string `json:"law_num"`
-	LawTitle string `json:"law_title"`
-	Match    string `json:"match"`
+	LawNum   string `json:"law_num" header:"法令番号"`
+	LawTitle string `json:"law_title" header:"法令名"`
+	Match    string `json:"match" header:"該当箇所"`
 }

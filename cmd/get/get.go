@@ -39,6 +39,9 @@ func run(cmd *cobra.Command, args []string) error {
 	if err := cmdutil.ValidateDate(flagAsof, "asof"); err != nil {
 		return err
 	}
+	if err := cmdutil.ValidateOutputPath(flagOutput); err != nil {
+		return err
+	}
 
 	client, err := cmdutil.NewClient()
 	if err != nil {

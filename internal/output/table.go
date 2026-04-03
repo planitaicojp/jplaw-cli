@@ -31,14 +31,18 @@ func (f *TableFormatter) Format(w io.Writer, data any) error {
 	headers := make([]string, elemType.NumField())
 	for i := 0; i < elemType.NumField(); i++ {
 		field := elemType.Field(i)
-		name := field.Tag.Get("json")
-		if idx := strings.IndexByte(name, ','); idx != -1 {
-			name = name[:idx]
+		name := field.Tag.Get("header")
+		if name == "" {
+			name = field.Tag.Get("json")
+			if idx := strings.IndexByte(name, ','); idx != -1 {
+				name = name[:idx]
+			}
+			if name == "" || name == "-" {
+				name = field.Name
+			}
+			name = strings.ToUpper(name)
 		}
-		if name == "" || name == "-" {
-			name = field.Name
-		}
-		headers[i] = strings.ToUpper(name)
+		headers[i] = name
 	}
 	if _, err := fmt.Fprintln(tw, strings.Join(headers, "\t")); err != nil {
 		return err

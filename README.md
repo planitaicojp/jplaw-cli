@@ -138,7 +138,6 @@ base_url: https://laws.e-gov.go.jp/api/2
 | `--format` | 出力フォーマット (table, json, text) |
 | `--verbose` | HTTPリクエスト/レスポンスのデバッグ出力 |
 | `--no-color` | 色出力を無効化 |
-| `--no-input` | 対話プロンプトを無効化 |
 
 ## シェル補完
 

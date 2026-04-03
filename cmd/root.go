@@ -22,7 +22,6 @@ var (
 	flagFormat  string
 	flagVerbose bool
 	flagNoColor bool
-	flagNoInput bool
 )
 
 var rootCmd = &cobra.Command{
@@ -43,7 +42,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&flagFormat, "format", "", "出力フォーマット: table, json, text")
 	rootCmd.PersistentFlags().BoolVar(&flagVerbose, "verbose", false, "詳細出力（HTTPデバッグ）")
 	rootCmd.PersistentFlags().BoolVar(&flagNoColor, "no-color", false, "色出力を無効化")
-	rootCmd.PersistentFlags().BoolVar(&flagNoInput, "no-input", false, "対話プロンプトを無効化")
 
 	rootCmd.AddCommand(versionCmd)
 	rootCmd.AddCommand(completionCmd)

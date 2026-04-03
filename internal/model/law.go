@@ -25,9 +25,9 @@ type LawsResponse struct {
 }
 
 type LawListRow struct {
-	LawID        string `json:"law_id"`
-	LawNum       string `json:"law_num"`
-	LawTitle     string `json:"law_title"`
-	LawType      string `json:"law_type"`
-	Promulgation string `json:"promulgation_date"`
+	LawID        string `json:"law_id" header:"法令ID"`
+	LawNum       string `json:"law_num" header:"法令番号"`
+	LawTitle     string `json:"law_title" header:"法令名"`
+	LawType      string `json:"law_type" header:"法令種別"`
+	Promulgation string `json:"promulgation_date" header:"公布日"`
 }
