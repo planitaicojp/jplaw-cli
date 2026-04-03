@@ -9,6 +9,7 @@ import (
 
 	"github.com/planitaicojp/jplaw-cli/cmd/cmdutil"
 	"github.com/planitaicojp/jplaw-cli/internal/api"
+	"github.com/planitaicojp/jplaw-cli/internal/lawtext"
 	"github.com/planitaicojp/jplaw-cli/internal/output"
 )
 
@@ -69,19 +70,20 @@ func run(cmd *cobra.Command, args []string) error {
 		}
 		return output.New("json").Format(os.Stdout, xmlResp)
 	default:
-		// Text output: print title + raw JSON full text for now
-		// lawtext converter will be added in Batch 4
 		fmt.Fprintf(os.Stdout, "%s\n", resp.RevisionInfo.LawTitle)
 		fmt.Fprintf(os.Stdout, "（%s）\n\n", resp.LawInfo.LawNum)
 
-		var prettyJSON json.RawMessage
-		if err := json.Unmarshal(resp.LawFullText, &prettyJSON); err == nil {
+		text, err := lawtext.Convert(resp.LawFullText)
+		if err != nil {
+			// Fallback to raw JSON
 			enc := json.NewEncoder(os.Stdout)
 			enc.SetIndent("", "  ")
 			enc.SetEscapeHTML(false)
-			return enc.Encode(prettyJSON)
+			return enc.Encode(resp.LawFullText)
 		}
-		_, err = os.Stdout.Write(resp.LawFullText)
+		if text != "" {
+			_, err = fmt.Fprint(os.Stdout, text)
+		}
 		return err
 	}
 }
