@@ -1,6 +1,8 @@
 package api
 
 import (
+	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -16,6 +18,7 @@ func TestGetAttachment(t *testing.T) {
 			t.Errorf("unexpected src param: %q", r.URL.Query().Get("src"))
 		}
 		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
 		w.Write(expected)
 	}))
 	defer server.Close()
@@ -25,13 +28,8 @@ func TestGetAttachment(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetAttachment() error: %v", err)
 	}
-	if len(data) != len(expected) {
-		t.Fatalf("data length = %d, want %d", len(data), len(expected))
-	}
-	for i, b := range expected {
-		if data[i] != b {
-			t.Errorf("data[%d] = %x, want %x", i, data[i], b)
-		}
+	if !bytes.Equal(data, expected) {
+		t.Errorf("data = %x, want %x", data, expected)
 	}
 }
 
@@ -44,6 +42,7 @@ func TestGetAttachmentWithSrc(t *testing.T) {
 			t.Errorf("src = %q, want image001.pdf", r.URL.Query().Get("src"))
 		}
 		w.Header().Set("Content-Type", "application/octet-stream")
+		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("pdf-content"))
 	}))
 	defer server.Close()
@@ -55,5 +54,22 @@ func TestGetAttachmentWithSrc(t *testing.T) {
 	}
 	if string(data) != "pdf-content" {
 		t.Errorf("data = %q, want %q", string(data), "pdf-content")
+	}
+}
+
+func TestGetAttachmentNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"code":    "NOT_FOUND",
+			"message": "添付ファイルが見つかりません",
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	_, err := client.GetAttachment("invalid-rev", "")
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
 }

@@ -1,11 +1,13 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	cerrors "github.com/planitaicojp/jplaw-cli/internal/errors"
 	"github.com/planitaicojp/jplaw-cli/internal/model"
 )
 
@@ -24,6 +26,7 @@ func TestGetLawData(t *testing.T) {
 		if q.Get("json_format") != "full" {
 			t.Errorf("json_format = %q, want full", q.Get("json_format"))
 		}
+		w.WriteHeader(http.StatusOK)
 		resp := model.LawDataResponse{
 			LawInfo:     model.LawInfo{LawID: "405AC0000000088", LawNum: "平成15年法律第88号"},
 			LawFullText: json.RawMessage(`{"tag":"Law","children":[]}`),
@@ -54,10 +57,10 @@ func TestGetLawDataWithParams(t *testing.T) {
 		if q.Get("elm") != "第一条" {
 			t.Errorf("elm = %q, want 第一条", q.Get("elm"))
 		}
-		resp := model.LawDataResponse{
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(model.LawDataResponse{
 			LawInfo: model.LawInfo{LawID: "test-id"},
-		}
-		json.NewEncoder(w).Encode(resp)
+		})
 	}))
 	defer server.Close()
 
@@ -75,17 +78,47 @@ func TestGetLawDataWithParams(t *testing.T) {
 	}
 }
 
+func TestGetLawDataFormatOverrides(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		q := r.URL.Query()
+		if q.Get("json_format") != "simple" {
+			t.Errorf("json_format = %q, want simple", q.Get("json_format"))
+		}
+		if q.Get("law_full_text_format") != "xml" {
+			t.Errorf("law_full_text_format = %q, want xml", q.Get("law_full_text_format"))
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(model.LawDataResponse{
+			LawInfo: model.LawInfo{LawID: "test-id"},
+		})
+	}))
+	defer server.Close()
+
+	client := NewClient(server.URL)
+	params := &LawDataParams{
+		JsonFormat:        "simple",
+		LawFullTextFormat: "xml",
+	}
+	resp, err := client.GetLawData("test-id", params)
+	if err != nil {
+		t.Fatalf("GetLawData() error: %v", err)
+	}
+	if resp.LawInfo.LawID != "test-id" {
+		t.Errorf("LawID = %q, want %q", resp.LawInfo.LawID, "test-id")
+	}
+}
+
 func TestGetLawDataWithAttachedFiles(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		resp := model.LawDataResponse{
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(model.LawDataResponse{
 			LawInfo: model.LawInfo{LawID: "test-id"},
 			AttachedFilesInfo: &model.AttachedFilesInfo{
 				AttachedFiles: []model.AttachedFile{
 					{LawRevisionID: "rev-1", Src: "image001.png", Updated: "2024-01-01"},
 				},
 			},
-		}
-		json.NewEncoder(w).Encode(resp)
+		})
 	}))
 	defer server.Close()
 
@@ -106,43 +139,109 @@ func TestGetLawDataWithAttachedFiles(t *testing.T) {
 	}
 }
 
-func TestGetLawFile(t *testing.T) {
-	expected := []byte("<Law>テスト法令XML</Law>")
+func TestGetLawDataNotFound(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/law_file/xml/405AC0000000088" {
-			t.Errorf("path = %q, want /law_file/xml/405AC0000000088", r.URL.Path)
-		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Write(expected)
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(map[string]string{
+			"code":    "NOT_FOUND",
+			"message": "該当する法令が見つかりません",
+		})
 	}))
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	data, err := client.GetLawFile("xml", "405AC0000000088", "")
-	if err != nil {
-		t.Fatalf("GetLawFile() error: %v", err)
+	_, err := client.GetLawData("nonexistent", nil)
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
-	if string(data) != string(expected) {
-		t.Errorf("data = %q, want %q", string(data), string(expected))
+	var nfe *cerrors.NotFoundError
+	if !isNotFoundError(err, &nfe) {
+		t.Errorf("expected NotFoundError, got %T: %v", err, err)
 	}
 }
 
-func TestGetLawFileWithAsof(t *testing.T) {
+func TestGetLawFile(t *testing.T) {
+	tests := []struct {
+		name     string
+		fileType string
+		idOrNum  string
+		asof     string
+		wantPath string
+		wantAsof bool
+	}{
+		{
+			name:     "xml without asof",
+			fileType: "xml",
+			idOrNum:  "405AC0000000088",
+			asof:     "",
+			wantPath: "/law_file/xml/405AC0000000088",
+			wantAsof: false,
+		},
+		{
+			name:     "json with asof",
+			fileType: "json",
+			idOrNum:  "test-id",
+			asof:     "2024-01-01",
+			wantPath: "/law_file/json/test-id",
+			wantAsof: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			expected := []byte("<Law>テスト法令</Law>")
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != tt.wantPath {
+					t.Errorf("path = %q, want %q", r.URL.Path, tt.wantPath)
+				}
+				if tt.wantAsof {
+					if r.URL.Query().Get("asof") != tt.asof {
+						t.Errorf("asof = %q, want %q", r.URL.Query().Get("asof"), tt.asof)
+					}
+				} else {
+					if r.URL.RawQuery != "" {
+						t.Errorf("unexpected query: %q", r.URL.RawQuery)
+					}
+				}
+				w.Header().Set("Content-Type", "application/octet-stream")
+				w.WriteHeader(http.StatusOK)
+				w.Write(expected)
+			}))
+			defer server.Close()
+
+			client := NewClient(server.URL)
+			data, err := client.GetLawFile(tt.fileType, tt.idOrNum, tt.asof)
+			if err != nil {
+				t.Fatalf("GetLawFile() error: %v", err)
+			}
+			if !bytes.Equal(data, expected) {
+				t.Errorf("data = %q, want %q", data, expected)
+			}
+		})
+	}
+}
+
+func TestGetLawFileError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Query().Get("asof") != "2024-01-01" {
-			t.Errorf("asof = %q, want 2024-01-01", r.URL.Query().Get("asof"))
-		}
-		w.Header().Set("Content-Type", "application/octet-stream")
-		w.Write([]byte("data"))
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{
+			"code":    "INTERNAL_ERROR",
+			"message": "サーバーエラー",
+		})
 	}))
 	defer server.Close()
 
 	client := NewClient(server.URL)
-	data, err := client.GetLawFile("json", "test-id", "2024-01-01")
-	if err != nil {
-		t.Fatalf("GetLawFile() error: %v", err)
+	_, err := client.GetLawFile("xml", "test-id", "")
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
-	if len(data) == 0 {
-		t.Error("GetLawFile() returned empty data")
+}
+
+// isNotFoundError checks if err is a *cerrors.NotFoundError via errors.As-like check.
+func isNotFoundError(err error, target **cerrors.NotFoundError) bool {
+	if e, ok := err.(*cerrors.NotFoundError); ok {
+		*target = e
+		return true
 	}
+	return false
 }
